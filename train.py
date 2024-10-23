@@ -57,7 +57,6 @@ if __name__ == '__main__':
     # Optimizer 
 
 
-
     # define loss
     criterion = nn.BCELoss() 
 
