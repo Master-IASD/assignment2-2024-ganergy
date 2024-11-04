@@ -4,7 +4,7 @@ import os
 import argparse
 
 
-from model import Generator, WGAN_Generator
+from model import Generator, Generator_BN, WGAN_Generator
 from utils import load_model
 
 if __name__ == '__main__':
@@ -13,16 +13,20 @@ if __name__ == '__main__':
                       help="The batch size to use for training.")
     args = parser.parse_args()
 
+
+
+
     print('Model Loading...')
     # Model Pipeline
     mnist_dim = 784
 
-    model = WGAN_Generator(g_output_dim = mnist_dim).cuda()
+    model = Generator_BN(g_output_dim = mnist_dim).cuda()
     model = load_model(model, 'checkpoints')
     model = torch.nn.DataParallel(model).cuda()
     model.eval()
 
     print('Model loaded.')
+
 
 
     print('Start Generating')
@@ -33,11 +37,10 @@ if __name__ == '__main__':
         while n_samples<10000:
             z = torch.randn(args.batch_size, 100).cuda()
             x = model(z)
-            # discomment this line if using normal generator 
-            #x = x.reshape(args.batch_size, 28, 28)
+            x = x.reshape(args.batch_size, 28, 28)
             for k in range(x.shape[0]):
                 if n_samples<10000:
-                    torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'), normalize=True)         
+                    torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))         
                     n_samples += 1
 
 
