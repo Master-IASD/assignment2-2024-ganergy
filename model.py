@@ -1,7 +1,30 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils import spectral_norm
 
+# Module Self-Attention, avec initialisation de `gamma` à zéro
+class SelfAttention(nn.Module):
+    def __init__(self, in_dim):
+        super(SelfAttention, self).__init__()
+        self.query_conv = spectral_norm(nn.Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1))
+        self.key_conv = spectral_norm(nn.Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1))
+        self.value_conv = spectral_norm(nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1))
+        self.gamma = nn.Parameter(torch.zeros(1))  # Initialisé à zéro pour une transition progressive
+
+    def forward(self, x):
+        batch_size, C, width, height = x.size()
+        query = self.query_conv(x).view(batch_size, -1, width * height).permute(0, 2, 1)
+        key = self.key_conv(x).view(batch_size, -1, width * height)
+        attention = torch.bmm(query, key)
+        attention = torch.nn.functional.softmax(attention, dim=-1)
+
+        value = self.value_conv(x).view(batch_size, -1, width * height)
+        out = torch.bmm(value, attention.permute(0, 2, 1))
+        out = out.view(batch_size, C, width, height)
+
+        out = self.gamma * out + x  # Applique gamma pour ajuster progressivement
+        return out
 
 class Generator(nn.Module):
     def __init__(self, g_output_dim):
@@ -92,3 +115,20 @@ class WGAN_Discriminator(nn.Module):
         #print("des ", x.shape)
         return x #torch.sigmoid(self.fc4(x))
 
+class Discriminator_SA(nn.Module):
+    def __init__(self, d_input_dim):
+        super(Discriminator_SA, self).__init__()
+        self.fc1 = spectral_norm(nn.Linear(d_input_dim, 1024))
+        self.fc2 = spectral_norm(nn.Linear(self.fc1.out_features, self.fc1.out_features // 2))
+        self.fc3 = spectral_norm(nn.Linear(self.fc2.out_features, self.fc2.out_features // 2))
+        self.fc4 = spectral_norm(nn.Linear(self.fc3.out_features, 1))
+        self.attention = SelfAttention(self.fc2.out_features // 2)  # Attention sur une couche intermédiaire
+
+    def forward(self, x):
+        x = torch.nn.functional.leaky_relu(self.fc1(x), 0.2)
+        x = torch.nn.functional.leaky_relu(self.fc2(x), 0.2)
+        x = torch.nn.functional.leaky_relu(self.fc3(x), 0.2)
+        x = x.view(-1, self.fc2.out_features // 2, 1, 1)
+        x = self.attention(x)  # Application de la self-attention
+        x = x.view(x.size(0), -1)
+        return torch.sigmoid(self.fc4(x))

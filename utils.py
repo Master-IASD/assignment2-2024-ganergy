@@ -91,10 +91,46 @@ def WGAN_G_train(x, G, D, G_optimizer):
 
     return G_loss.data.item()
 
-def save_models(G, D, folder):
-    torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
-    torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
+# Fonctions de Perte avec Hinge Loss
+def D_loss_function_SA(real_output, fake_output):
+    real_loss = torch.mean(torch.relu(1.0 - real_output))
+    fake_loss = torch.mean(torch.relu(1.0 + fake_output))
+    return real_loss + fake_loss
 
+def G_loss_function_SA(fake_output):
+    return -torch.mean(fake_output)
+
+# Fonction d'entraînement du Discriminateur
+def D_train_SA(x, G, D, D_optimizer):
+    D.zero_grad()
+    x_real = x.cuda()
+    real_output = D(x_real)
+    z = torch.randn(x.shape[0], 100).cuda()
+    x_fake = G(z)
+    fake_output = D(x_fake)
+    D_loss = D_loss_function_SA(real_output, fake_output)
+    D_loss.backward()
+    D_optimizer.step()
+    return D_loss.item()
+
+# Fonction d'entraînement du Générateur
+def G_train_SA(x, G, D, G_optimizer):
+    G.zero_grad()
+    z = torch.randn(x.shape[0], 100).cuda()
+    x_fake = G(z)
+    fake_output = D(x_fake)
+    G_loss = G_loss_function_SA(fake_output)
+    G_loss.backward()
+    G_optimizer.step()
+    return G_loss.item()
+
+# def save_models(G, D, folder):
+#     torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
+#     torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
+
+def save_models(G, D, folder, epoch):
+    torch.save(G.state_dict(), os.path.join(folder, f'G_epoch_{epoch}.pth'))
+    torch.save(D.state_dict(), os.path.join(folder, f'D_epoch_{epoch}.pth'))
 
 def load_model(G, folder):
     ckpt = torch.load(os.path.join(folder,'G.pth'))#, map_location=torch.device('cpu')) #(when using cpu instead of gpu)

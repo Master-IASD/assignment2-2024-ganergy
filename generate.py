@@ -13,9 +13,6 @@ if __name__ == '__main__':
                       help="The batch size to use for training.")
     args = parser.parse_args()
 
-
-
-
     print('Model Loading...')
     # Model Pipeline
     mnist_dim = 784
@@ -28,19 +25,18 @@ if __name__ == '__main__':
     print('Model loaded.')
 
 
-
     print('Start Generating')
     os.makedirs('samples', exist_ok=True)
 
     n_samples = 0
     with torch.no_grad():
-        while n_samples<10000:
+        while n_samples < 10000:
             z = torch.randn(args.batch_size, 100).cuda()
-            x = model(z)
-            x = x.reshape(args.batch_size, 28, 28)
-            for k in range(x.shape[0]):
-                if n_samples<10000:
-                    torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))         
+            x_fake = model(z)
+            x_fake = x_fake.view(args.batch_size, 1, 28, 28)
+            for img in x_fake:
+                if n_samples < 10000:
+                    torchvision.utils.save_image(img, os.path.join('samples', f'{n_samples}.png'), normalize=True)
                     n_samples += 1
 
 
