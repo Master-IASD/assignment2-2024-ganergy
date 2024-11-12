@@ -124,15 +124,15 @@ def G_train_SA(x, G, D, G_optimizer):
     G_optimizer.step()
     return G_loss.item()
 
-# def save_models(G, D, folder):
-#     torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
-#     torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
+def save_models(G, D, folder):
+    torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
+    torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
 
-def save_models(G, D, folder, epoch):
-    torch.save(G.state_dict(), os.path.join(folder, f'G_epoch_{epoch}.pth'))
-    torch.save(D.state_dict(), os.path.join(folder, f'D_epoch_{epoch}.pth'))
+# def save_models(G, D, folder, epoch):
+#     torch.save(G.state_dict(), os.path.join(folder, f'G_epoch_{epoch}.pth'))
+#     torch.save(D.state_dict(), os.path.join(folder, f'D_epoch_{epoch}.pth'))
 
 def load_model(G, folder):
-    ckpt = torch.load(os.path.join(folder,'G_gmgan_5gaus_150epo.pth'))#, map_location=torch.device('cpu')) #(when using cpu instead of gpu)
+    ckpt = torch.load(os.path.join(folder,'G_SAGAN_best.pth'))#, map_location=torch.device('cpu')) #(when using cpu instead of gpu)
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G

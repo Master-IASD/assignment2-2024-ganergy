@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Model Pipeline
     mnist_dim = 784
 
-    model = Generator(g_output_dim = mnist_dim).cuda()
+    model = Generator_BN(g_output_dim = mnist_dim).cuda()
     model = load_model(model, 'checkpoints')
     model = torch.nn.DataParallel(model).cuda()
     model.eval()
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     n_samples = 0
     with torch.no_grad():
         while n_samples < 10000:
-            z = mix_dist.sample((args.batch_size, 100)).cuda()
+            z = torch.randn(args.batch_size, 100).cuda()
             x_fake = model(z)
             x_fake = x_fake.view(args.batch_size, 1, 28, 28)
             for img in x_fake:
